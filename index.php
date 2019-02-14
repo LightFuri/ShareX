@@ -1,19 +1,41 @@
 <?php
-include "Classes/ftpService.php";
-include "Classes/fileController.php";
 
+error_reporting(0);
+//error_reporting(E_ALL);
 
-$settings = include "config.php";
+class Autoloader
+{
+    public static function register()
+    {
+        spl_autoload_register(function ($class) {
+            $file = "Classes" . DIRECTORY_SEPARATOR . $class . '.php';
+            if (file_exists($file)) {
+                require_once $file;
+                return true;
+            }
+            return false;
+        });
+    }
+}
 
-$conn_id = ftpService::FTPConnect($settings);
+Autoloader::register();
 
-$file = new fileController($conn_id);
+$settings = require_once __DIR__ . DIRECTORY_SEPARATOR . "config.php";
 
-$file->upload();
+try {
+    if(empty($_POST)) {
+        throw new Exception('POST пуст!');
+    }
 
-ftpService::FTPClose($conn_id);
+        $uploadController = new UploadController(
+            $settings['ftpDomain'], $settings['tokens'], $settings['ftpUser'],
+            $settings['ftpPass'], $settings['ftpServer'],
+            $settings['ftpTimeout'], $settings['ftpPort'],
+            $settings['ftpUseSsl'], $settings['ftpBaseDir']
+        );
+        print($uploadController->upload($_FILES['ShareX'], $_POST));
 
-
-
-
-
+} catch (Exception $e) {
+    http_response_code(400);
+    print($e->getMessage());
+}
